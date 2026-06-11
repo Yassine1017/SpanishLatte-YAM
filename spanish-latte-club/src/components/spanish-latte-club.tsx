@@ -1260,7 +1260,7 @@ function LoginScreen({
 
           <div className="max-w-sm">
             <p className="text-3xl font-semibold leading-tight sm:text-4xl">
-              3 friends on the search for the best Iced Spanish Latte in
+              3 friends on the hunt for the best Iced Spanish Latte in
               Bahrain.
             </p>
           </div>
