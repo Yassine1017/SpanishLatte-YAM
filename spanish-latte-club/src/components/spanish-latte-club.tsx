@@ -77,6 +77,7 @@ import {
   summarizeCafes,
   tierLabels,
   tierOrder,
+  worstCafeForProfile,
 } from "@/lib/latte";
 import { cn } from "@/lib/utils";
 import {
@@ -525,6 +526,7 @@ export function SpanishLatteClub() {
       profile,
       average: profileAverage(profile, ratings),
       favorite: favoriteCafeForProfile(profile, cafes, ratings),
+      worst: worstCafeForProfile(profile, cafes, ratings),
     }));
 
     const scored = averages.flatMap((item) =>
@@ -2229,6 +2231,7 @@ function FriendComparison({
       profile: Profile;
       average: number | null;
       favorite: Cafe | null;
+      worst: Cafe | null;
     }[];
     mostGenerous: { profile: Profile; average: number } | null;
     strictest: { profile: Profile; average: number } | null;
@@ -2305,6 +2308,12 @@ function FriendComparison({
                   Favorite cafe:{" "}
                   <span className="font-medium text-foreground">
                     {average?.favorite?.name ?? "Still searching"}
+                  </span>
+                </p>
+                <p className="text-sm text-muted-foreground">
+                  Worst cafe:{" "}
+                  <span className="font-medium text-foreground">
+                    {average?.worst?.name ?? "Still searching"}
                   </span>
                 </p>
               </CardContent>

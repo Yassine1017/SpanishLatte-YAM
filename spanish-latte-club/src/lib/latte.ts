@@ -105,6 +105,22 @@ export function favoriteCafeForProfile(
   return cafes.find((cafe) => cafe.id === topRating.cafeId) ?? null;
 }
 
+export function worstCafeForProfile(
+  profile: Profile,
+  cafes: Cafe[],
+  ratings: Rating[]
+) {
+  const lowestRating = ratings
+    .filter((rating) => rating.userId === profile.id)
+    .sort((a, b) => a.overall - b.overall)[0];
+
+  if (!lowestRating) {
+    return null;
+  }
+
+  return cafes.find((cafe) => cafe.id === lowestRating.cafeId) ?? null;
+}
+
 export function getAlignedPair(profiles: Profile[], ratings: Rating[]) {
   const pairs: { label: string; delta: number }[] = [];
 
