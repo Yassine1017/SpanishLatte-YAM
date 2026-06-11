@@ -56,7 +56,6 @@ import {
   FieldLabel,
 } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
-import { Separator } from "@/components/ui/separator";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Slider } from "@/components/ui/slider";
 import { Switch } from "@/components/ui/switch";
@@ -471,10 +470,6 @@ export function SpanishLatteClub() {
     visibleSummaries.find((summary) => summary.cafe.id === selectedCafeId) ??
     visibleSummaries[0] ??
     null;
-
-  const ownRating = selectedSummary?.ratings.find(
-    (rating) => rating.userId === currentUserId
-  );
 
   const selectedBranchSummaries = useMemo(() => {
     if (!selectedSummary) {
@@ -1114,7 +1109,9 @@ export function SpanishLatteClub() {
                         tier={tier}
                         summaries={summariesByTier.get(tier) ?? []}
                         profiles={profiles}
+                        currentUserId={currentUserId}
                         selectedCafeId={selectedCafeId}
+                        onRate={openRatingDialog}
                         onSelect={setSelectedCafeId}
                       />
                     ))}
@@ -1168,11 +1165,8 @@ export function SpanishLatteClub() {
           {activeTab !== "tierList" && (
             <CafeDetail
               branchSummaries={selectedBranchSummaries}
-              currentUserId={currentUserId}
               profiles={profiles}
               summary={selectedSummary}
-              ownRating={ownRating}
-              onRate={openRatingDialog}
               onSelectBranch={setSelectedCafeId}
             />
           )}
@@ -1488,13 +1482,17 @@ function TierSection({
   tier,
   summaries,
   profiles,
+  currentUserId,
   selectedCafeId,
+  onRate,
   onSelect,
 }: {
   tier: TierKey;
   summaries: CafeSummary[];
   profiles: Profile[];
+  currentUserId: string | null;
   selectedCafeId: string;
+  onRate: (id: string) => void;
   onSelect: (id: string) => void;
 }) {
   if (!summaries.length) {
@@ -1529,7 +1527,9 @@ function TierSection({
             key={summary.cafe.id}
             summary={summary}
             profiles={profiles}
+            currentUserId={currentUserId}
             isSelected={summary.cafe.id === selectedCafeId}
+            onRate={onRate}
             onSelect={onSelect}
           />
         ))}
@@ -1689,12 +1689,16 @@ function CompactTierRow({
 function CafeCard({
   summary,
   profiles,
+  currentUserId,
   isSelected,
+  onRate,
   onSelect,
 }: {
   summary: CafeSummary;
   profiles: Profile[];
+  currentUserId: string | null;
   isSelected: boolean;
+  onRate: (id: string) => void;
   onSelect: (id: string) => void;
 }) {
   const styles = tierStyles[summary.tier];
@@ -1709,10 +1713,17 @@ function CafeCard({
         isSelected && "ring-2"
       )}
     >
-      <button
-        type="button"
-        className="grid min-h-[164px] grid-cols-[92px_1fr] text-left outline-none focus-visible:ring-3 focus-visible:ring-ring/40 sm:grid-cols-[118px_1fr]"
+      <div
+        role="button"
+        tabIndex={0}
+        className="grid min-h-[164px] cursor-pointer grid-cols-[92px_1fr] text-left outline-none focus-visible:ring-3 focus-visible:ring-ring/40 sm:grid-cols-[118px_1fr]"
         onClick={() => onSelect(summary.cafe.id)}
+        onKeyDown={(event) => {
+          if (event.key === "Enter" || event.key === " ") {
+            event.preventDefault();
+            onSelect(summary.cafe.id);
+          }
+        }}
       >
         <div
           className={cn(
@@ -1742,11 +1753,26 @@ function CafeCard({
               )}
             </div>
 
-            <div className="rounded-lg bg-secondary px-2 py-1 text-center">
-              <p className="text-xs text-muted-foreground">Avg</p>
-              <p className="font-semibold">
-                {summary.average?.toFixed(1) ?? "--"}
-              </p>
+            <div className="flex shrink-0 items-center gap-2">
+              <Button
+                type="button"
+                size="sm"
+                disabled={!currentUserId}
+                className="h-10 rounded-lg bg-primary/95 px-3 text-xs font-semibold text-primary-foreground shadow-sm transition hover:bg-primary hover:shadow-md"
+                onClick={(event) => {
+                  event.stopPropagation();
+                  onRate(summary.cafe.id);
+                }}
+              >
+                <Pencil className="size-3.5" />
+                Rate
+              </Button>
+              <div className="rounded-lg bg-secondary px-2 py-1 text-center ring-1 ring-border/50">
+                <p className="text-xs text-muted-foreground">Avg</p>
+                <p className="font-semibold">
+                  {summary.average?.toFixed(1) ?? "--"}
+                </p>
+              </div>
             </div>
           </div>
 
@@ -1781,7 +1807,7 @@ function CafeCard({
             )}
           </div>
         </div>
-      </button>
+      </div>
     </Card>
   );
 }
@@ -1815,19 +1841,13 @@ function FriendScorePill({
 
 function CafeDetail({
   branchSummaries,
-  currentUserId,
   profiles,
   summary,
-  ownRating,
-  onRate,
   onSelectBranch,
 }: {
   branchSummaries: CafeSummary[];
-  currentUserId: string | null;
   profiles: Profile[];
   summary: CafeSummary | null;
-  ownRating: Rating | undefined;
-  onRate: (cafeId: string) => void;
   onSelectBranch: (cafeId: string) => void;
 }) {
   if (!summary) {
@@ -1939,31 +1959,17 @@ function CafeDetail({
         </div>
       )}
 
-      <Button
-        onClick={() => onRate(cafe.id)}
-        disabled={!currentUserId}
-        className="w-full"
-      >
-        <Pencil data-icon="inline-start" />
-        {ownRating ? "Edit my verdict" : "Add my verdict"}
-      </Button>
-
-      <Separator />
-
       <div className="flex flex-col gap-3">
         {profiles.map((profile) => {
           const rating = summary.ratings.find(
             (item) => item.userId === profile.id
           );
-          const canEdit = profile.id === currentUserId && Boolean(rating);
 
           return (
             <RatingCard
               key={profile.id}
-              canEdit={canEdit}
               profile={profile}
               rating={rating}
-              onEdit={() => onRate(cafe.id)}
             />
           );
         })}
@@ -1973,15 +1979,11 @@ function CafeDetail({
 }
 
 function RatingCard({
-  canEdit,
   profile,
   rating,
-  onEdit,
 }: {
-  canEdit: boolean;
   profile: Profile;
   rating: Rating | undefined;
-  onEdit: () => void;
 }) {
   return (
     <Card size="sm" className="rounded-lg">
@@ -2015,17 +2017,11 @@ function RatingCard({
               <ScorePill label="Creaminess" value={rating.creaminess} />
             </div>
             <p className="text-sm text-muted-foreground">{rating.comment}</p>
-            <div className="flex items-center justify-between gap-2">
+            <div className="flex items-center gap-2">
               <Badge variant={rating.wouldOrderAgain ? "secondary" : "outline"}>
                 <Heart />
                 {rating.wouldOrderAgain ? "Would order again" : "One and done"}
               </Badge>
-              {canEdit && (
-                <Button variant="ghost" size="sm" onClick={onEdit}>
-                  <Pencil data-icon="inline-start" />
-                  Edit
-                </Button>
-              )}
             </div>
           </>
         ) : (
