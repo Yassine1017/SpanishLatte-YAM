@@ -1124,9 +1124,9 @@ export function SpanishLatteClub() {
         <div
           className={cn(
             "grid gap-4 lg:items-start",
-            activeTab === "tierList"
-              ? "lg:grid-cols-1"
-              : "lg:grid-cols-[minmax(0,1.12fr)_minmax(360px,0.88fr)]"
+            activeTab === "tiers"
+              ? "lg:grid-cols-[minmax(0,1.12fr)_minmax(360px,0.88fr)]"
+              : "lg:grid-cols-1"
           )}
         >
           <section className="min-w-0 rounded-lg border bg-background/70 p-3 shadow-sm backdrop-blur sm:p-4">
@@ -1241,7 +1241,7 @@ export function SpanishLatteClub() {
             </Tabs>
           </section>
 
-          {activeTab !== "tierList" && (
+          {activeTab === "tiers" && (
             <div ref={cafeDetailRef} className="min-w-0 lg:sticky lg:top-4">
               <CafeDetail
                 branchSummaries={selectedBranchSummaries}
