@@ -1262,19 +1262,12 @@ function LoginScreen({
             <p className="text-4xl font-semibold leading-tight">
               Private verdicts for very serious coffee research.
             </p>
-            <p className="mt-4 text-sm leading-6 text-primary-foreground/72">
-              Choose your name, enter your password, and keep your verdicts
-              under your own seat at the table.
-            </p>
           </div>
         </div>
 
         <div className="flex flex-col justify-center gap-5 p-6 sm:p-8">
           <div>
             <h2 className="text-xl font-semibold">Enter the club</h2>
-            <p className="mt-1 text-sm text-muted-foreground">
-              Pick your name, then enter the club password.
-            </p>
           </div>
 
           <FieldGroup>
