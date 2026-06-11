@@ -30,6 +30,7 @@ export type Rating = {
   visitDate: string;
   wouldOrderAgain: boolean;
   photoUrl: string | null;
+  updatedAt?: string;
 };
 
 export type TierKey = "S" | "A" | "B" | "C" | "D" | "Awaiting";

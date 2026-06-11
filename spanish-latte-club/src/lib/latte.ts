@@ -29,8 +29,19 @@ export function getTier(average: number | null, ratingCount: number): TierKey {
   return "D";
 }
 
+function ratingPhotoTime(rating: Rating) {
+  return new Date(rating.updatedAt ?? `${rating.visitDate}T00:00:00`).getTime();
+}
+
+function latestRatingPhoto(ratings: Rating[]) {
+  return [...ratings]
+    .filter((rating) => Boolean(rating.photoUrl))
+    .sort((a, b) => ratingPhotoTime(b) - ratingPhotoTime(a))[0]?.photoUrl;
+}
+
 export function summarizeCafe(cafe: Cafe, ratings: Rating[]): CafeSummary {
   const cafeRatings = ratings.filter((rating) => rating.cafeId === cafe.id);
+  const replacementPhotoUrl = latestRatingPhoto(cafeRatings);
   const average =
     cafeRatings.length > 0
       ? roundScore(
@@ -45,7 +56,12 @@ export function summarizeCafe(cafe: Cafe, ratings: Rating[]): CafeSummary {
       .sort((a, b) => b.overall - a.overall)[0]?.comment ?? "";
 
   return {
-    cafe,
+    cafe: replacementPhotoUrl
+      ? {
+          ...cafe,
+          photoUrl: replacementPhotoUrl,
+        }
+      : cafe,
     ratings: cafeRatings,
     average,
     tier: getTier(average, cafeRatings.length),

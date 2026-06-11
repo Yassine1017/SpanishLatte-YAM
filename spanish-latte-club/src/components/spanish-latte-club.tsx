@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import {
   CalendarDays,
   Check,
@@ -151,6 +151,7 @@ type RatingRow = {
   visit_date: string;
   would_order_again: boolean;
   photo_url: string | null;
+  updated_at: string;
 };
 
 const today = new Date().toISOString().slice(0, 10);
@@ -357,6 +358,7 @@ function mapRating(row: RatingRow): Rating {
     visitDate: row.visit_date,
     wouldOrderAgain: row.would_order_again,
     photoUrl: row.photo_url,
+    updatedAt: row.updated_at,
   };
 }
 
@@ -408,6 +410,7 @@ export function SpanishLatteClub() {
   const [ratingDraft, setRatingDraft] = useState<RatingDraft>(() =>
     blankRatingDraft()
   );
+  const cafeDetailRef = useRef<HTMLDivElement>(null);
 
   const supabase = remoteMode ? getSupabaseBrowserClient() : null;
 
@@ -535,14 +538,6 @@ export function SpanishLatteClub() {
       alignedPair: getAlignedPair(profiles, ratings),
     };
   }, [cafes, profiles, ratings]);
-
-  useEffect(() => {
-    setCurrentPage(1);
-  }, [areaFilter, completenessFilter, dateFilter, searchTerm]);
-
-  useEffect(() => {
-    setCurrentPage((page) => Math.min(page, pageCount));
-  }, [pageCount]);
 
   useEffect(() => {
     if (!remoteMode || !supabase) {
@@ -700,6 +695,47 @@ export function SpanishLatteClub() {
     setCurrentUserId(null);
   }
 
+  function selectCafe(cafeId: string, scrollToDetail = false) {
+    setSelectedCafeId(cafeId);
+
+    if (
+      !scrollToDetail ||
+      typeof window === "undefined" ||
+      !window.matchMedia("(max-width: 1023px)").matches
+    ) {
+      return;
+    }
+
+    requestAnimationFrame(() => {
+      requestAnimationFrame(() => {
+        cafeDetailRef.current?.scrollIntoView({
+          behavior: "smooth",
+          block: "start",
+        });
+      });
+    });
+  }
+
+  function updateSearchTerm(value: string) {
+    setSearchTerm(value);
+    setCurrentPage(1);
+  }
+
+  function updateAreaFilter(value: string) {
+    setAreaFilter(value);
+    setCurrentPage(1);
+  }
+
+  function updateCompletenessFilter(value: CompletenessFilter) {
+    setCompletenessFilter(value);
+    setCurrentPage(1);
+  }
+
+  function updateDateFilter(value: DateFilter) {
+    setDateFilter(value);
+    setCurrentPage(1);
+  }
+
   function openRatingDialog(cafeId: string) {
     const existingRating = ratings.find(
       (rating) => rating.cafeId === cafeId && rating.userId === currentUserId
@@ -777,6 +813,7 @@ export function SpanishLatteClub() {
               photoUrl: ratingDraft.photoFile
                 ? URL.createObjectURL(ratingDraft.photoFile)
                 : null,
+              updatedAt: new Date().toISOString(),
             },
             ...previous,
           ]);
@@ -803,23 +840,23 @@ export function SpanishLatteClub() {
     }
 
     const photoUrl = await uploadPhoto(draft.photoFile, "ratings");
+    const payload = {
+      cafe_id: cafeId,
+      user_id: currentUser.id,
+      overall: draft.overall,
+      sweetness: draft.sweetness,
+      coffee_strength: draft.coffeeStrength,
+      price_value: draft.priceValue,
+      creaminess: draft.creaminess,
+      comment: draft.comment.trim(),
+      visit_date: draft.visitDate,
+      would_order_again: draft.wouldOrderAgain,
+      ...(photoUrl ? { photo_url: photoUrl } : {}),
+    };
 
-    const { error } = await supabase.from("ratings").upsert(
-      {
-        cafe_id: cafeId,
-        user_id: currentUser.id,
-        overall: draft.overall,
-        sweetness: draft.sweetness,
-        coffee_strength: draft.coffeeStrength,
-        price_value: draft.priceValue,
-        creaminess: draft.creaminess,
-        comment: draft.comment.trim(),
-        visit_date: draft.visitDate,
-        would_order_again: draft.wouldOrderAgain,
-        photo_url: photoUrl,
-      },
-      { onConflict: "cafe_id,user_id" }
-    );
+    const { error } = await supabase
+      .from("ratings")
+      .upsert(payload, { onConflict: "cafe_id,user_id" });
 
     if (error) {
       throw error;
@@ -864,6 +901,7 @@ export function SpanishLatteClub() {
                 visitDate: ratingDraft.visitDate,
                 wouldOrderAgain: ratingDraft.wouldOrderAgain,
                 photoUrl,
+                updatedAt: new Date().toISOString(),
               },
               ...previous,
             ];
@@ -882,6 +920,7 @@ export function SpanishLatteClub() {
                   visitDate: ratingDraft.visitDate,
                   wouldOrderAgain: ratingDraft.wouldOrderAgain,
                   photoUrl: photoUrl ?? rating.photoUrl,
+                  updatedAt: new Date().toISOString(),
                 }
               : rating
           );
@@ -1129,10 +1168,10 @@ export function SpanishLatteClub() {
                   completenessFilter={completenessFilter}
                   dateFilter={dateFilter}
                   searchTerm={searchTerm}
-                  onAreaChange={setAreaFilter}
-                  onCompletenessChange={setCompletenessFilter}
-                  onDateChange={setDateFilter}
-                  onSearchChange={setSearchTerm}
+                  onAreaChange={updateAreaFilter}
+                  onCompletenessChange={updateCompletenessFilter}
+                  onDateChange={updateDateFilter}
+                  onSearchChange={updateSearchTerm}
                 />
 
                 {filteredSummaries.length ? (
@@ -1146,7 +1185,7 @@ export function SpanishLatteClub() {
                         currentUserId={currentUserId}
                         selectedCafeId={selectedCafeId}
                         onRate={openRatingDialog}
-                        onSelect={setSelectedCafeId}
+                        onSelect={(cafeId) => selectCafe(cafeId, true)}
                       />
                     ))}
                     <CafePagination
@@ -1178,17 +1217,17 @@ export function SpanishLatteClub() {
                   completenessFilter={completenessFilter}
                   dateFilter={dateFilter}
                   searchTerm={searchTerm}
-                  onAreaChange={setAreaFilter}
-                  onCompletenessChange={setCompletenessFilter}
-                  onDateChange={setDateFilter}
-                  onSearchChange={setSearchTerm}
+                  onAreaChange={updateAreaFilter}
+                  onCompletenessChange={updateCompletenessFilter}
+                  onDateChange={updateDateFilter}
+                  onSearchChange={updateSearchTerm}
                 />
 
                 <CompactTierList
                   groupedSummaries={summariesByTier}
                   profiles={profiles}
                   selectedCafeId={selectedCafeId}
-                  onSelect={setSelectedCafeId}
+                  onSelect={selectCafe}
                 />
               </TabsContent>
 
@@ -1203,12 +1242,14 @@ export function SpanishLatteClub() {
           </section>
 
           {activeTab !== "tierList" && (
-            <CafeDetail
-              branchSummaries={selectedBranchSummaries}
-              profiles={profiles}
-              summary={selectedSummary}
-              onSelectBranch={setSelectedCafeId}
-            />
+            <div ref={cafeDetailRef} className="min-w-0 lg:sticky lg:top-4">
+              <CafeDetail
+                branchSummaries={selectedBranchSummaries}
+                profiles={profiles}
+                summary={selectedSummary}
+                onSelectBranch={selectCafe}
+              />
+            </div>
           )}
         </div>
       </div>
@@ -2006,7 +2047,7 @@ function CafeDetail({
   const location = formatCafeLocation(cafe);
 
   return (
-    <section className="sticky top-4 flex min-w-0 flex-col gap-4 rounded-lg border bg-card/85 p-3 shadow-sm backdrop-blur sm:p-4">
+    <section className="flex min-w-0 flex-col gap-4 rounded-lg border bg-card/85 p-3 shadow-sm backdrop-blur sm:p-4">
       <div
         className="club-photo relative min-h-64 overflow-hidden rounded-lg bg-cover bg-center"
         style={
