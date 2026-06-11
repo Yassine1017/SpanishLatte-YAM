@@ -4,6 +4,8 @@ import { useEffect, useMemo, useState } from "react";
 import {
   CalendarDays,
   Check,
+  ChevronLeft,
+  ChevronRight,
   Coffee,
   Crown,
   Filter,
@@ -152,6 +154,7 @@ type RatingRow = {
 };
 
 const today = new Date().toISOString().slice(0, 10);
+const CAFES_PER_PAGE = 6;
 
 const friendLoginOptions: FriendLoginOption[] = [
   {
@@ -387,6 +390,7 @@ export function SpanishLatteClub() {
   const [activeTab, setActiveTab] = useState<ActiveTab>("tiers");
   const [areaFilter, setAreaFilter] = useState("all");
   const [searchTerm, setSearchTerm] = useState("");
+  const [currentPage, setCurrentPage] = useState(1);
   const [completenessFilter, setCompletenessFilter] =
     useState<CompletenessFilter>("all");
   const [dateFilter, setDateFilter] = useState<DateFilter>("all");
@@ -455,6 +459,28 @@ export function SpanishLatteClub() {
     });
   }, [areaFilter, completenessFilter, dateFilter, searchTerm, visibleSummaries]);
 
+  const pageCount = Math.max(
+    1,
+    Math.ceil(filteredSummaries.length / CAFES_PER_PAGE)
+  );
+  const activePage = Math.min(currentPage, pageCount);
+  const paginatedSummaries = useMemo(() => {
+    const startIndex = (activePage - 1) * CAFES_PER_PAGE;
+
+    return filteredSummaries.slice(startIndex, startIndex + CAFES_PER_PAGE);
+  }, [activePage, filteredSummaries]);
+
+  const paginatedSummariesByTier = useMemo(() => {
+    const grouped = new Map<TierKey, CafeSummary[]>();
+
+    tierOrder.forEach((tier) => grouped.set(tier, []));
+    paginatedSummaries.forEach((summary) => {
+      grouped.get(summary.tier)?.push(summary);
+    });
+
+    return grouped;
+  }, [paginatedSummaries]);
+
   const summariesByTier = useMemo(() => {
     const grouped = new Map<TierKey, CafeSummary[]>();
 
@@ -509,6 +535,14 @@ export function SpanishLatteClub() {
       alignedPair: getAlignedPair(profiles, ratings),
     };
   }, [cafes, profiles, ratings]);
+
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [areaFilter, completenessFilter, dateFilter, searchTerm]);
+
+  useEffect(() => {
+    setCurrentPage((page) => Math.min(page, pageCount));
+  }, [pageCount]);
 
   useEffect(() => {
     if (!remoteMode || !supabase) {
@@ -1107,7 +1141,7 @@ export function SpanishLatteClub() {
                       <TierSection
                         key={tier}
                         tier={tier}
-                        summaries={summariesByTier.get(tier) ?? []}
+                        summaries={paginatedSummariesByTier.get(tier) ?? []}
                         profiles={profiles}
                         currentUserId={currentUserId}
                         selectedCafeId={selectedCafeId}
@@ -1115,6 +1149,12 @@ export function SpanishLatteClub() {
                         onSelect={setSelectedCafeId}
                       />
                     ))}
+                    <CafePagination
+                      currentPage={activePage}
+                      pageCount={pageCount}
+                      totalCount={filteredSummaries.length}
+                      onPageChange={setCurrentPage}
+                    />
                   </div>
                 ) : (
                   <Empty className="min-h-72 rounded-lg border bg-card">
@@ -1469,6 +1509,105 @@ function FilterSelect({
         ))}
       </select>
     </label>
+  );
+}
+
+function CafePagination({
+  currentPage,
+  pageCount,
+  totalCount,
+  onPageChange,
+}: {
+  currentPage: number;
+  pageCount: number;
+  totalCount: number;
+  onPageChange: (page: number) => void;
+}) {
+  if (pageCount <= 1) {
+    return (
+      <p className="text-center text-xs text-muted-foreground">
+        Showing all {totalCount} cafes.
+      </p>
+    );
+  }
+
+  const pageMarkers = Array.from({ length: pageCount }, (_, index) => index + 1)
+    .filter(
+      (page) =>
+        page === 1 ||
+        page === pageCount ||
+        Math.abs(page - currentPage) <= 1
+    )
+    .reduce<(number | "gap")[]>((markers, page) => {
+      const previous = markers[markers.length - 1];
+
+      if (typeof previous === "number" && page - previous > 1) {
+        markers.push("gap");
+      }
+
+      markers.push(page);
+      return markers;
+    }, []);
+
+  return (
+    <nav
+      aria-label="Cafe pages"
+      className="flex flex-col items-center justify-between gap-3 rounded-lg border bg-card/80 px-3 py-3 sm:flex-row"
+    >
+      <p className="text-xs font-medium text-muted-foreground">
+        Page {currentPage} of {pageCount} - {totalCount} cafes
+      </p>
+
+      <div className="flex items-center gap-1">
+        <Button
+          type="button"
+          variant="outline"
+          size="icon"
+          className="size-9"
+          onClick={() => onPageChange(Math.max(1, currentPage - 1))}
+          disabled={currentPage === 1}
+          aria-label="Previous cafe page"
+        >
+          <ChevronLeft />
+        </Button>
+
+        {pageMarkers.map((marker, index) =>
+          marker === "gap" ? (
+            <span
+              key={`gap-${index}`}
+              className="flex size-9 items-center justify-center text-sm text-muted-foreground"
+            >
+              ...
+            </span>
+          ) : (
+            <Button
+              key={marker}
+              type="button"
+              variant={marker === currentPage ? "default" : "outline"}
+              size="icon"
+              className="size-9"
+              onClick={() => onPageChange(marker)}
+              aria-label={`Go to cafe page ${marker}`}
+              aria-current={marker === currentPage ? "page" : undefined}
+            >
+              {marker}
+            </Button>
+          )
+        )}
+
+        <Button
+          type="button"
+          variant="outline"
+          size="icon"
+          className="size-9"
+          onClick={() => onPageChange(Math.min(pageCount, currentPage + 1))}
+          disabled={currentPage === pageCount}
+          aria-label="Next cafe page"
+        >
+          <ChevronRight />
+        </Button>
+      </div>
+    </nav>
   );
 }
 
