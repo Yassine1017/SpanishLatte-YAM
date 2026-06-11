@@ -1245,7 +1245,7 @@ function LoginScreen({
   return (
     <main className="grid min-h-screen place-items-center px-4 py-8">
       <section className="grid w-full max-w-4xl overflow-hidden rounded-lg border bg-card club-shadow lg:grid-cols-[1fr_0.95fr]">
-        <div className="flex min-h-[420px] flex-col justify-between bg-primary p-6 text-primary-foreground sm:p-8">
+        <div className="flex min-h-[420px] flex-col gap-20 bg-primary p-6 text-primary-foreground sm:gap-24 sm:p-8">
           <div className="flex items-center gap-3">
             <div className="flex size-10 items-center justify-center rounded-lg bg-primary-foreground/12 ring-1 ring-primary-foreground/15">
               <LockKeyhole />
@@ -1259,8 +1259,9 @@ function LoginScreen({
           </div>
 
           <div className="max-w-sm">
-            <p className="text-4xl font-semibold leading-tight">
-              Private verdicts for very serious coffee research.
+            <p className="text-3xl font-semibold leading-tight sm:text-4xl">
+              3 friends on the search for the best Iced Spanish Latte in
+              Bahrain.
             </p>
           </div>
         </div>
