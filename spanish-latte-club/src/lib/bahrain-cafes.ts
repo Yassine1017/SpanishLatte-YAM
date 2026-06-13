@@ -166,6 +166,7 @@ const rawBahrainCafes = [
   ["La Ventana", "Adliya", "Adliya cafe-restaurant target for the list."],
   ["Brewed Cafe", "Sanad", "Sanad coffee spot for study and casual ratings."],
   ["Cortado Cafe", "Isa Town", "Bahrain specialty coffee cafe connected to Riffa roots and worth a direct Spanish latte verdict."],
+  ["Cortado Cafe Seef", "Seef", "Seef branch of Cortado Cafe for comparing the same specialty cup across areas."],
   ["% Arabica The Avenues", "The Avenues", "Avenues branch for a clean Japanese-style Spanish latte check."],
   ["% Arabica Marassi Galleria", "Marassi", "Marassi branch to compare Arabica cups across Bahrain."],
   ["Cafe Sego Diplomatic Area", "Diplomatic Area", "Main French-style Cafe Sego stop for a polished latte verdict."],
